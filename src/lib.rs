@@ -12,8 +12,9 @@ pub struct NotificationPayload {
     pub message: String,
 }
 
+/// Load a SNS client from the environment, using eu-west-1, which is where the topic is.
 pub async fn load_sns_client_from_env() -> aws_sdk_sns::Client {
-    let config = aws_config::load_from_env().await;
+    let config = aws_config::from_env().region("eu-west-1").load().await;
     aws_sdk_sns::Client::new(&config)
 }
 
