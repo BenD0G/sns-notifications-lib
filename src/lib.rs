@@ -27,7 +27,7 @@ pub async fn publish_sns_message(
 
     client
         .publish()
-        .topic_arn("arn:aws:sns:eu-west-2:982932998640:pushover-notifications")
+        .topic_arn("arn:aws:sns:eu-west-1:982932998640:pushover-notifications")
         .message(&message)
         .send()
         .await?;
