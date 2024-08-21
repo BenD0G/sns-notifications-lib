@@ -1,0 +1,11 @@
+[package]
+name = "sns-notifications-lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-sdk-sns = "1.40"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
