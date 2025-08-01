@@ -18,13 +18,46 @@ pub async fn load_sns_client_from_env() -> aws_sdk_sns::Client {
     aws_sdk_sns::Client::new(&config)
 }
 
+/// Pushover notifications have a maximum length of 512 characters for the title and message combined.
+/// Note that SNS also has a maximum message size of 256KB, so this is not a hard limit for SNS,
+/// but it is a hard limit for Pushover.
+fn truncate_payload(payload: &NotificationPayload) -> NotificationPayload {
+    const MAX_LENGTH: usize = 512;
+
+    if payload.title.len() + payload.message.len() <= MAX_LENGTH {
+        return NotificationPayload {
+            api_key_name: payload.api_key_name.clone(),
+            title: payload.title.clone(),
+            message: payload.message.clone(),
+        };
+    } else if payload.title.len() > MAX_LENGTH {
+        return NotificationPayload {
+            api_key_name: payload.api_key_name.clone(),
+            title: payload.title.chars().take(MAX_LENGTH).collect(),
+            message: String::new(),
+        };
+    } else {
+        return NotificationPayload {
+            api_key_name: payload.api_key_name.clone(),
+            title: payload.title.clone(),
+            message: payload
+                .message
+                .chars()
+                .take(MAX_LENGTH - payload.title.len())
+                .collect(),
+        };
+    }
+}
+
 /// Send a message to the pushover-notifications SNS topic, which will get picked up by the central notification lambda
 /// and routed to the appropriate Pushover channel.
+/// Note that the title + message will be truncated to 512 characters.
 pub async fn publish_sns_message(
     client: &aws_sdk_sns::Client,
     payload: &NotificationPayload,
 ) -> Result<()> {
-    let message = serde_json::to_string(payload)?;
+    let payload = truncate_payload(payload);
+    let message = serde_json::to_string(&payload)?;
 
     client
         .publish()
@@ -38,6 +71,7 @@ pub async fn publish_sns_message(
 
 /// Loads a SNS client and sends a message to the pushover-notifications SNS topic, which will get picked up
 /// by the central notification lambda and routed to the appropriate Pushover channel.
+/// Note that the title + message will be truncated to 512 characters.
 pub async fn load_client_and_send_notification(payload: &NotificationPayload) -> Result<()> {
     let client = load_sns_client_from_env().await;
     publish_sns_message(&client, &payload).await
